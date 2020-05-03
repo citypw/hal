@@ -75,6 +75,8 @@ private:
     bool m_ignore_selection_change;
 
     module_proxy_model* m_module_proxy_model;
+
+    void isolate_in_new_view(u32 module_id);
 };
 
 #endif // MODULE_WIDGET_H

@@ -42,6 +42,7 @@ module_widget::module_widget(QWidget* parent) : content_widget("Modules", parent
     m_tree_view->setFrameStyle(QFrame::NoFrame);
     m_tree_view->header()->close();
     m_tree_view->setExpandsOnDoubleClick(false);
+    m_tree_view->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
     m_content_layout->addWidget(m_tree_view);
     m_content_layout->addWidget(&m_searchbar);
     m_searchbar.hide();
@@ -100,14 +101,18 @@ void module_widget::handle_tree_view_context_menu_requested(const QPoint& point)
     if (!index.isValid())
         return;
 
+    m_tree_view->setCurrentIndex(index);
+
     QMenu context_menu;
 
+    QAction isolate_in_new_view_action("Isolate in New View", &context_menu);
     QAction add_selection_action("Add Selection to Module", &context_menu);
     QAction add_child_action("Add Child Module", &context_menu);
     QAction change_name_action("Change Module Name", &context_menu);
     QAction change_color_action("Change Module Color", &context_menu);
     QAction delete_action("Delete Module", &context_menu);
 
+    context_menu.addAction(&isolate_in_new_view_action);
     context_menu.addAction(&add_selection_action);
     context_menu.addAction(&add_child_action);
     context_menu.addAction(&change_name_action);
@@ -118,6 +123,9 @@ void module_widget::handle_tree_view_context_menu_requested(const QPoint& point)
 
     if (!clicked)
         return;
+
+    if(clicked == &isolate_in_new_view_action)
+        isolate_in_new_view(g_netlist_relay.get_module_model()->get_item(m_module_proxy_model->mapToSource(index))->id());
 
     if (clicked == &add_selection_action)
         g_netlist_relay.debug_add_selection_to_module(g_netlist_relay.get_module_model()->get_item(m_module_proxy_model->mapToSource(index))->id());
@@ -140,6 +148,7 @@ void module_widget::handle_tree_view_context_menu_requested(const QPoint& point)
 
 void module_widget::handle_tree_selection_changed(const QItemSelection& selected, const QItemSelection& deselected)
 {
+    /*
     Q_UNUSED(selected)
     Q_UNUSED(deselected)
 
@@ -153,18 +162,22 @@ void module_widget::handle_tree_selection_changed(const QItemSelection& selected
 
     QModelIndexList current_selections = selected.indexes();
     u32 selected_module = g_netlist_relay.get_module_model()->get_item(m_module_proxy_model->mapToSource(selected.indexes().first()))->id();
-
-    g_selection_relay.clear();
-    g_selection_relay.m_selected_modules.insert(selected_module);
-    g_selection_relay.m_focus_type = selection_relay::item_type::module;
-    g_selection_relay.m_focus_id = selected_module;
-
-    g_selection_relay.relay_selection_changed(this);
+    */
 }
 
 void module_widget::handle_item_double_clicked(const QModelIndex &index)
 {
-    auto module = g_netlist->get_module_by_id(g_netlist_relay.get_module_model()->get_item(m_module_proxy_model->mapToSource(index))->id());
+    u32 selected_module = g_netlist_relay.get_module_model()->get_item(m_module_proxy_model->mapToSource(index))->id();
+    g_selection_relay.clear();
+    g_selection_relay.m_selected_modules.insert(selected_module);
+    g_selection_relay.m_focus_type = selection_relay::item_type::module;
+    g_selection_relay.m_focus_id = selected_module;
+    g_selection_relay.relay_selection_changed(this);
+}
+
+void module_widget::isolate_in_new_view(u32 module_id)
+{
+    auto module = g_netlist->get_module_by_id(module_id);
     if(!module)
         return;
 
